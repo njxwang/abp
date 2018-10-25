@@ -27,6 +27,8 @@ namespace Volo.Docs.Documents
         public string FileName { get; set; }
 
         public ProjectDto Project { get; set; }
+
+        public bool SuccessfullyRetrieved { get; set; }
     }
 
     public class NavigationNode
@@ -39,6 +41,8 @@ namespace Volo.Docs.Documents
 
         [JsonProperty("items")]
         public List<NavigationNode> Items { get; set; }
+
+        public bool IsLeaf => !HasChildItems;
 
         public bool HasChildItems => Items != null && Items.Any();
 
@@ -80,6 +84,12 @@ namespace Volo.Docs.Documents
 
         public void ConvertItems()
         {
+            if (!SuccessfullyRetrieved || Content.IsNullOrEmpty())
+            {
+                RootNode = new NavigationNode();
+                return;
+            }
+
             try
             {
                 RootNode = JsonConvert.DeserializeObject<NavigationNode>(Content);

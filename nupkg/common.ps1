@@ -15,7 +15,8 @@ $solutions = (
     "modules/audit-logging",
     "modules/background-jobs",
     "modules/blogging",
-    "modules/docs"
+    "modules/docs",
+    "abp_io"
 )
 
 # List of projects
@@ -127,9 +128,10 @@ $projects = (
     "modules/identity/src/Volo.Abp.Identity.Web", 
     
     # modules/identityserver
-    "modules/identityserver/src/Volo.Abp.IdentityServer.Domain",
     "modules/identityserver/src/Volo.Abp.IdentityServer.Domain.Shared",
+    "modules/identityserver/src/Volo.Abp.IdentityServer.Domain",
     "modules/identityserver/src/Volo.Abp.IdentityServer.EntityFrameworkCore", 
+    "modules/identityserver/src/Volo.Abp.IdentityServer.MongoDB",
 
     # modules/account
     "modules/account/src/Volo.Abp.Account.Web",
@@ -164,5 +166,8 @@ $projects = (
     "modules/background-jobs/src/Volo.Abp.BackgroundJobs.Domain.Shared",
     "modules/background-jobs/src/Volo.Abp.BackgroundJobs.Domain",
     "modules/background-jobs/src/Volo.Abp.BackgroundJobs.EntityFrameworkCore",
-    "modules/background-jobs/src/Volo.Abp.BackgroundJobs.MongoDB"
+    "modules/background-jobs/src/Volo.Abp.BackgroundJobs.MongoDB",
+    
+    # abp_io/SolutionTemplating
+    "abp_io/src/Volo.Utils.SolutionTemplating"
 )
