@@ -4,13 +4,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.EntityFrameworkCore;
+using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Modularity;
 
 namespace Volo.Abp.AuditLogging.EntityFrameworkCore
 {
     [DependsOn(
         typeof(AbpAuditLoggingTestBaseModule),
-        typeof(AbpAuditLoggingEntityFrameworkCoreModule)
+        typeof(AbpAuditLoggingEntityFrameworkCoreModule),
+        typeof(AbpEntityFrameworkCoreSqliteModule)
     )]
     public class AbpAuditLoggingEntityFrameworkCoreTestModule : AbpModule
     {
@@ -18,11 +20,11 @@ namespace Volo.Abp.AuditLogging.EntityFrameworkCore
         {
             var sqliteConnection = CreateDatabaseAndGetConnection();
 
-            context.Services.Configure<AbpDbContextOptions>(options =>
+            Configure<AbpDbContextOptions>(options =>
             {
-                options.Configure(abpDbContextConfigurationContext =>
+                options.Configure(ctx =>
                 {
-                    abpDbContextConfigurationContext.DbContextOptions.UseSqlite(sqliteConnection);
+                    ctx.DbContextOptions.UseSqlite(sqliteConnection);
                 });
             });
         }

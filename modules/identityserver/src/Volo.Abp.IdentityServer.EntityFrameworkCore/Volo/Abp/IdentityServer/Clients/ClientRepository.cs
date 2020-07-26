@@ -19,7 +19,7 @@ namespace Volo.Abp.IdentityServer.Clients
         }
 
         public virtual async Task<Client> FindByCliendIdAsync(
-            string clientId, 
+            string clientId,
             bool includeDetails = true,
             CancellationToken cancellationToken = default)
         {
@@ -28,87 +28,29 @@ namespace Volo.Abp.IdentityServer.Clients
                 .FirstOrDefaultAsync(x => x.ClientId == clientId, GetCancellationToken(cancellationToken));
         }
 
-        public virtual async Task<List<Client>> GetListAsync(string sorting, int skipCount, int maxResultCount, bool includeDetails = false,
+        public virtual async Task<List<Client>> GetListAsync(
+            string sorting, int skipCount, int maxResultCount, string filter, bool includeDetails = false,
             CancellationToken cancellationToken = default)
         {
             return await DbSet
-                .IncludeDetails(includeDetails).OrderBy(sorting ?? nameof(Client.ClientName) + " desc")
+                .IncludeDetails(includeDetails)
+                .WhereIf(!filter.IsNullOrWhiteSpace(), x => x.ClientId.Contains(filter))
+                .OrderBy(sorting ?? nameof(Client.ClientName) + " desc")
                 .PageBy(skipCount, maxResultCount)
                 .ToListAsync(GetCancellationToken(cancellationToken));
         }
 
-        public virtual async Task<long> GetTotalCount()
+        public virtual async Task<List<string>> GetAllDistinctAllowedCorsOriginsAsync(CancellationToken cancellationToken = default)
         {
-            return await DbSet.CountAsync();
+            return await DbContext.ClientCorsOrigins
+                .Select(x => x.Origin)
+                .Distinct()
+                .ToListAsync(GetCancellationToken(cancellationToken));
         }
 
-        public override async Task<Client> UpdateAsync(Client entity, bool autoSave = false, CancellationToken cancellationToken = default)
+        public virtual async Task<bool> CheckClientIdExistAsync(string clientId, Guid? expectedId = null, CancellationToken cancellationToken = default)
         {
-
-            var secrets = DbContext.Set<ClientSecret>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var secret in secrets)
-            {
-                DbContext.Set<ClientSecret>().Remove(secret);
-            }
-
-            var claims = DbContext.Set<ClientClaim>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var claim in claims)
-            {
-                DbContext.Set<ClientClaim>().Remove(claim);
-            }
-
-            var grantTypes = DbContext.Set<ClientGrantType>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var grantType in grantTypes)
-            {
-                DbContext.Set<ClientGrantType>().Remove(grantType);
-            }
-
-            var restrictions = DbContext.Set<ClientIdPRestriction>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var restriction in restrictions)
-            {
-                DbContext.Set<ClientIdPRestriction>().Remove(restriction);
-            }
-
-            var properties = DbContext.Set<ClientProperty>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var clientProperty in properties)
-            {
-                DbContext.Set<ClientProperty>().Remove(clientProperty);
-            }
-
-            var scopes = DbContext.Set<ClientScope>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var scope in scopes)
-            {
-                DbContext.Set<ClientScope>().Remove(scope);
-            }
-
-            var corsOrigins = DbContext.Set<ClientCorsOrigin>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var corsOrigin in corsOrigins)
-            {
-                DbContext.Set<ClientCorsOrigin>().Remove(corsOrigin);
-            }
-
-            var redirectUris = DbContext.Set<ClientRedirectUri>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var redirectUri in redirectUris)
-            {
-                DbContext.Set<ClientRedirectUri>().Remove(redirectUri);
-            }
-
-            var postLogoutRedirectUris = DbContext.Set<ClientPostLogoutRedirectUri>().Where(s => s.ClientId == entity.Id);
-
-            foreach (var postLogoutRedirectUri in postLogoutRedirectUris)
-            {
-                DbContext.Set<ClientPostLogoutRedirectUri>().Remove(postLogoutRedirectUri);
-            }
-
-            return await base.UpdateAsync(entity, autoSave, cancellationToken);
+            return await DbSet.AnyAsync(c => c.Id != expectedId && c.ClientId == clientId, cancellationToken: cancellationToken);
         }
 
         public override IQueryable<Client> WithDetails()

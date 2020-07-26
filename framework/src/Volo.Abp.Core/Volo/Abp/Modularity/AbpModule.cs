@@ -22,7 +22,7 @@ namespace Volo.Abp.Modularity
             {
                 if (_serviceConfigurationContext == null)
                 {
-                    throw new AbpException($"{nameof(ServiceConfigurationContext)} is only available in the {nameof(PreConfigureServices)}, {nameof(PreConfigureServices)} and {nameof(PreConfigureServices)} methods.");
+                    throw new AbpException($"{nameof(ServiceConfigurationContext)} is only available in the {nameof(ConfigureServices)}, {nameof(PreConfigureServices)} and {nameof(PostConfigureServices)} methods.");
                 }
 
                 return _serviceConfigurationContext;
@@ -120,6 +120,18 @@ namespace Volo.Abp.Modularity
             where TOptions : class
         {
             ServiceConfigurationContext.Services.PreConfigure(configureOptions);
+        }
+
+        protected void PostConfigure<TOptions>(Action<TOptions> configureOptions)
+            where TOptions : class
+        {
+            ServiceConfigurationContext.Services.PostConfigure(configureOptions);
+        }
+
+        protected void PostConfigureAll<TOptions>(Action<TOptions> configureOptions)
+            where TOptions : class
+        {
+            ServiceConfigurationContext.Services.PostConfigureAll(configureOptions);
         }
     }
 }

@@ -11,22 +11,22 @@ namespace Volo.Abp.Modularity
     public class ModuleManager : IModuleManager, ISingletonDependency
     {
         private readonly IModuleContainer _moduleContainer;
-        private readonly IEnumerable<IModuleLifecycleContributer> _lifecycleContributers;
+        private readonly IEnumerable<IModuleLifecycleContributor> _lifecycleContributors;
         private readonly ILogger<ModuleManager> _logger;
 
         public ModuleManager(
             IModuleContainer moduleContainer,
             ILogger<ModuleManager> logger,
-            IOptions<ModuleLifecycleOptions> options,
+            IOptions<AbpModuleLifecycleOptions> options,
             IServiceProvider serviceProvider)
         {
             _moduleContainer = moduleContainer;
             _logger = logger;
 
-            _lifecycleContributers = options.Value
-                .Contributers
+            _lifecycleContributors = options.Value
+                .Contributors
                 .Select(serviceProvider.GetRequiredService)
-                .Cast<IModuleLifecycleContributer>()
+                .Cast<IModuleLifecycleContributor>()
                 .ToArray();
         }
 
@@ -34,20 +34,27 @@ namespace Volo.Abp.Modularity
         {
             LogListOfModules();
 
-            foreach (var contributer in _lifecycleContributers)
+            foreach (var contributor in _lifecycleContributors)
             {
                 foreach (var module in _moduleContainer.Modules)
                 {
-                    contributer.Initialize(context, module.Instance);
+                    try
+                    {
+                        contributor.Initialize(context, module.Instance);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new AbpInitializationException($"An error occurred during the initialize {contributor.GetType().FullName} phase of the module {module.Type.AssemblyQualifiedName}: {ex.Message}. See the inner exception for details.", ex);
+                    }
                 }
             }
 
-            _logger.LogInformation("Initialized all modules.");
+            _logger.LogInformation("Initialized all ABP modules.");
         }
 
         private void LogListOfModules()
         {
-            _logger.LogInformation("Loaded modules:");
+            _logger.LogInformation("Loaded ABP modules:");
 
             foreach (var module in _moduleContainer.Modules)
             {
@@ -59,11 +66,18 @@ namespace Volo.Abp.Modularity
         {
             var modules = _moduleContainer.Modules.Reverse().ToList();
 
-            foreach (var contributer in _lifecycleContributers)
+            foreach (var contributor in _lifecycleContributors)
             {
                 foreach (var module in modules)
                 {
-                    contributer.Shutdown(context, module.Instance);
+                    try
+                    {
+                        contributor.Shutdown(context, module.Instance);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new AbpShutdownException($"An error occurred during the shutdown {contributor.GetType().FullName} phase of the module {module.Type.AssemblyQualifiedName}: {ex.Message}. See the inner exception for details.", ex);
+                    }
                 }
             }
         }

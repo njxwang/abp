@@ -12,9 +12,21 @@ namespace Volo.Abp.IdentityServer
     )]
     public class AbpIdentityServerTestBaseModule : AbpModule
     {
+        public override void PreConfigureServices(ServiceConfigurationContext context)
+        {
+            PreConfigure<AbpIdentityServerBuilderOptions>(options =>
+            {
+                options.AddDeveloperSigningCredential = false;
+            });
+
+            PreConfigure<IIdentityServerBuilder>(identityServerBuilder =>
+            {
+                identityServerBuilder.AddDeveloperSigningCredential(false, System.Guid.NewGuid().ToString());
+            });
+        }
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            context.Services.AddAlwaysAllowPermissionChecker();
+            context.Services.AddAlwaysAllowAuthorization();
         }
 
         public override void OnApplicationInitialization(ApplicationInitializationContext context)
@@ -26,12 +38,9 @@ namespace Volo.Abp.IdentityServer
         {
             using (var scope = context.ServiceProvider.CreateScope())
             {
-                //var dataSeeder = scope.ServiceProvider.GetRequiredService<IIdentityServerDataSeeder>();
-                //AsyncHelper.RunSync(() => dataSeeder.SeedAsync("1q2w3E*"));
-
-                scope.ServiceProvider
+                AsyncHelper.RunSync(() => scope.ServiceProvider
                     .GetRequiredService<AbpIdentityServerTestDataBuilder>()
-                    .Build();
+                    .BuildAsync());
             }
         }
     }

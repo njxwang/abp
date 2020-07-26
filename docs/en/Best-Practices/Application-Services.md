@@ -17,16 +17,18 @@
 
 ##### Basic DTO
 
-**Do** define a **basic** DTO for an entity.
+**Do** define a **basic** DTO for an aggregate root.
 
-- Include all the **primitive properties** directly on the entity.
-  - Exception: Can **exclude** properties for **security** reasons (like User.Password).
+- Include all the **primitive properties** directly on the aggregate root.
+  - Exception: Can **exclude** properties for **security** reasons (like `User.Password`).
 - Include all the **sub collections** of the entity where every item in the collection is a simple **relation DTO**.
+- Inherit from one of the **extensible entity DTO** classes for aggregate roots (and entities implement the `IHasExtraProperties`).
 
 Example:
 
 ```c#
-public class IssueDto : FullAuditedEntityDto<Guid>
+[Serializable]
+public class IssueDto : ExtensibleFullAuditedEntityDto<Guid>
 {
     public string Title { get; set; }
     public string Text { get; set; }
@@ -34,6 +36,7 @@ public class IssueDto : FullAuditedEntityDto<Guid>
     public Collection<IssueLabelDto> Labels { get; set; }
 }
 
+[Serializable]
 public class IssueLabelDto
 {
     public Guid IssueId { get; set; }
@@ -54,7 +57,8 @@ public class IssueLabelDto
 Example:
 
 ````C#
-public class IssueWithDetailsDto : FullAuditedEntityDto<Guid>
+[Serializable]
+public class IssueWithDetailsDto : ExtensibleFullAuditedEntityDto<Guid>
 {
     public string Title { get; set; }
     public string Text { get; set; }
@@ -62,13 +66,15 @@ public class IssueWithDetailsDto : FullAuditedEntityDto<Guid>
     public Collection<LabelDto> Labels { get; set; }
 }
 
-public class MilestoneDto : EntityDto<Guid>
+[Serializable]
+public class MilestoneDto : ExtensibleEntityDto<Guid>
 {
     public string Name { get; set; }
     public bool IsClosed { get; set; }
 }
 
-public class LabelDto : EntityDto<Guid>
+[Serializable]
+public class LabelDto : ExtensibleEntityDto<Guid>
 {
     public string Name { get; set; }
     public string Color { get; set; }
@@ -115,6 +121,7 @@ Task<List<QuestionWithDetailsDto>> GetListAsync(QuestionListQueryDto queryDto);
 
 * **Do** use the `CreateAsync` **method name**.
 * **Do** get a **specialized input** DTO to create the entity.
+* **Do** inherit the DTO class from the `ExtensibleObject` (or any other class implements the `IHasExtraProperties`) to allow to pass extra properties if needed.
 * **Do** use **data annotations** for input validation.
   * Share constants between domain wherever possible (via constants defined in the **domain shared** package).
 * **Do** return **the detailed** DTO for new created entity.
@@ -129,10 +136,12 @@ Task<QuestionWithDetailsDto> CreateAsync(CreateQuestionDto questionDto);
 The related **DTO**:
 
 ````C#
-public class CreateQuestionDto
+[Serializable]
+public class CreateQuestionDto : ExtensibleObject
 {
     [Required]
-    [StringLength(QuestionConsts.MaxTitleLength, MinimumLength = QuestionConsts.MinTitleLength)]
+    [StringLength(QuestionConsts.MaxTitleLength,
+                  MinimumLength = QuestionConsts.MinTitleLength)]
     public string Title { get; set; }
     
     [StringLength(QuestionConsts.MaxTextLength)]
@@ -146,6 +155,7 @@ public class CreateQuestionDto
 
 - **Do** use the `UpdateAsync` **method name**.
 - **Do** get a **specialized input** DTO to update the entity.
+- **Do** inherit the DTO class from the `ExtensibleObject` (or any other class implements the `IHasExtraProperties`) to allow to pass extra properties if needed.
 - **Do** get the Id of the entity as a separated primitive parameter. Do not include to the update DTO.
 - **Do** use **data annotations** for input validation.
   - Share constants between domain wherever possible (via constants defined in the **domain shared** package).
@@ -182,6 +192,8 @@ This method votes a question and returns the current score of the question.
 * **Do** implement application service interfaces in the **application layer**.
   * **Do** use the naming convention. Ex: Create `ProductAppService` class for the `IProductAppService` interface.
   * **Do** inherit from the `ApplicationService` base class.
+* **Do** make all public methods **virtual**, so developers may inherit and override them.
+* **Do not** make **private** methods. Instead make them **protected virtual**, so developers may inherit and override them.
 
 #### Using Repositories
 
@@ -192,15 +204,20 @@ This method votes a question and returns the current score of the question.
 
 * **Do not** use LINQ/SQL for querying data from database inside the application service methods. It's repository's responsibility to perform LINQ/SQL queries from the data source.
 
+#### Extra Properties
+
+* **Do** use either `MapExtraPropertiesTo` extension method ([see](Object-Extensions.md)) or configure the object mapper (`MapExtraProperties`) to allow application developers to be able to extend the objects and services.
+
 #### Manipulating / Deleting Entities
 
 * **Do** always get all the related entities from repositories to perform the operations on them.
+* **Do** call repository's Update/UpdateAsync method after updating an entity. Because, not all database APIs support change tracking & auto update.
 
 #### Using Other Application Services
 
 * **Do not** use other application services of the same module/application. Instead;
   * Use domain layer to perform the required task.
-  * Extract a new class and share between the application services to accomplish the code reuse when necessary.
+  * Extract a new class and share between the application services to accomplish the code reuse when necessary. But be careful to don't couple two use cases. They may seem similar at the beginning, but may evolve to different directions by time. So, use code sharing carefully.
 * **Can** use application services of others only if;
   * They are parts of another module / microservice.
   * The current module has only reference to the application contracts of the used module.

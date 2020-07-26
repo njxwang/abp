@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using System.Linq;
 using System.Linq.Dynamic.Core;
-using System.Threading.Tasks;
-using MongoDB.Driver.Linq;
+using System.Threading;
 using Volo.Abp.Domain.Repositories.MongoDB;
 using Volo.Abp.MongoDB;
 
@@ -15,23 +17,56 @@ namespace Volo.Abp.Identity.MongoDB
         {
         }
 
-        public async Task<bool> DoesNameExist(string name, Guid? claimTypeId = null)
+        public virtual async Task<bool> AnyAsync(
+            string name,
+            Guid? ignoredId = null,
+            CancellationToken cancellationToken = default)
         {
-            return GetMongoQueryable().WhereIf(claimTypeId != null, ct => ct.Id != claimTypeId).Count(ct => ct.Name == name) > 0;
+            if (ignoredId == null)
+            {
+                return await GetMongoQueryable()
+                    .Where(ct => ct.Name == name)
+                    .AnyAsync(GetCancellationToken(cancellationToken));
+            }
+            else
+            {
+                return await GetMongoQueryable()
+                    .Where(ct => ct.Id != ignoredId && ct.Name == name)
+                    .AnyAsync(GetCancellationToken(cancellationToken));
+            }
         }
 
-        public async Task<List<IdentityClaimType>> GetListAsync(string sorting, int maxResultCount, int skipCount)
+        public virtual async Task<List<IdentityClaimType>> GetListAsync(
+            string sorting,
+            int maxResultCount,
+            int skipCount,
+            string filter,
+            CancellationToken cancellationToken = default)
         {
-            var identityClaimTypes = GetMongoQueryable().OrderBy(sorting ?? "name desc")
-                .PageBy(skipCount, maxResultCount)
-                .ToList();
-
-            return identityClaimTypes;
+            return await GetMongoQueryable()
+                .WhereIf<IdentityClaimType, IMongoQueryable<IdentityClaimType>>(
+                    !filter.IsNullOrWhiteSpace(),
+                    u =>
+                        u.Name.Contains(filter)
+                )
+                .OrderBy(sorting ?? nameof(IdentityClaimType.Name))
+                .As<IMongoQueryable<IdentityClaimType>>()
+                .PageBy<IdentityClaimType, IMongoQueryable<IdentityClaimType>>(skipCount, maxResultCount)
+                .ToListAsync(GetCancellationToken(cancellationToken));
         }
 
-        public async Task<int> GetTotalCount()
+        public async Task<long> GetCountAsync(
+            string filter = null,
+            CancellationToken cancellationToken = default)
         {
-            return await GetMongoQueryable().CountAsync();
+            return await GetMongoQueryable()
+                .WhereIf<IdentityClaimType, IMongoQueryable<IdentityClaimType>>(
+                    !filter.IsNullOrWhiteSpace(),
+                    u =>
+                        u.Name.Contains(filter)
+                )
+                .As<IMongoQueryable<IdentityClaimType>>()
+                .LongCountAsync(GetCancellationToken(cancellationToken));
         }
     }
 }

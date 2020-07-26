@@ -10,7 +10,6 @@ using Volo.Abp.IdentityServer.IdentityResources;
 using Volo.Abp.MongoDB;
 using System.Linq.Dynamic.Core;
 
-
 namespace Volo.Abp.IdentityServer.MongoDB
 {
     public class MongoIdentityResourceRepository : MongoDbRepository<IAbpIdentityServerMongoDbContext, IdentityResource, Guid>, IIdentityResourceRepository
@@ -19,16 +18,29 @@ namespace Volo.Abp.IdentityServer.MongoDB
         {
         }
 
-        public virtual async Task<List<IdentityResource>> GetListAsync(string sorting, int skipCount, int maxResultCount, bool includeDetails = false, CancellationToken cancellationToken = default)
+        public virtual async Task<List<IdentityResource>> GetListAsync(string sorting, int skipCount, int maxResultCount, string filter, bool includeDetails = false, CancellationToken cancellationToken = default)
         {
             return await GetMongoQueryable()
+                .WhereIf(!filter.IsNullOrWhiteSpace(), x => x.Name.Contains(filter) ||
+                         x.Description.Contains(filter) ||
+                         x.DisplayName.Contains(filter))
                 .OrderBy(sorting ?? nameof(IdentityResource.Name))
                 .As<IMongoQueryable<IdentityResource>>()
                 .PageBy<IdentityResource, IMongoQueryable<IdentityResource>>(skipCount, maxResultCount)
                 .ToListAsync(GetCancellationToken(cancellationToken));
         }
 
-        public async Task<List<IdentityResource>> GetListByScopesAsync(string[] scopeNames, bool includeDetails = false,
+        public virtual async Task<IdentityResource> FindByNameAsync(
+            string name,
+            bool includeDetails = true,
+            CancellationToken cancellationToken = default)
+        {
+            return await GetMongoQueryable()
+                .Where(x => x.Name == name)
+                .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
+        }
+
+        public virtual async Task<List<IdentityResource>> GetListByScopesAsync(string[] scopeNames, bool includeDetails = false,
             CancellationToken cancellationToken = default)
         {
             return await GetMongoQueryable()
@@ -36,9 +48,14 @@ namespace Volo.Abp.IdentityServer.MongoDB
                 .ToListAsync(GetCancellationToken(cancellationToken));
         }
 
-        public virtual async Task<long> GetTotalCount()
+        public virtual async Task<long> GetTotalCountAsync()
         {
             return await GetCountAsync();
+        }
+
+        public virtual async Task<bool> CheckNameExistAsync(string name, Guid? expectedId = null, CancellationToken cancellationToken = default)
+        {
+            return await GetMongoQueryable().AnyAsync(ir => ir.Id != expectedId && ir.Name == name, cancellationToken: cancellationToken);
         }
     }
 }

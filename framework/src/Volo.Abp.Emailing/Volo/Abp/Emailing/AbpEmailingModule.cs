@@ -1,10 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Volo.Abp.BackgroundJobs;
-using Volo.Abp.Emailing.Templates;
-using Volo.Abp.Emailing.Templates.Virtual;
+﻿using Volo.Abp.BackgroundJobs;
+using Volo.Abp.Emailing.Localization;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.Settings;
+using Volo.Abp.TextTemplating;
 using Volo.Abp.VirtualFileSystem;
 
 namespace Volo.Abp.Emailing
@@ -13,37 +12,28 @@ namespace Volo.Abp.Emailing
         typeof(AbpSettingsModule),
         typeof(AbpVirtualFileSystemModule),
         typeof(AbpBackgroundJobsAbstractionsModule),
-        typeof(AbpLocalizationModule)
+        typeof(AbpLocalizationModule),
+        typeof(AbpTextTemplatingModule)
         )]
     public class AbpEmailingModule : AbpModule
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            context.Services.Configure<SettingOptions>(options =>
-            {
-                options.DefinitionProviders.Add<EmailSettingProvider>();
-            });
-
-            context.Services.Configure<VirtualFileSystemOptions>(options =>
+            Configure<AbpVirtualFileSystemOptions>(options =>
             {
                 options.FileSets.AddEmbedded<AbpEmailingModule>();
             });
 
-            Configure<BackgroundJobOptions>(options =>
+            Configure<AbpLocalizationOptions>(options =>
             {
-                options.AddJob<BackgroundEmailSendingJob>();
+                options.Resources
+                    .Add<EmailingResource>("en")
+                    .AddVirtualJson("/Volo/Abp/Emailing/Localization");
             });
 
-            context.Services.Configure<EmailTemplateOptions>(options =>
+            Configure<AbpBackgroundJobOptions>(options =>
             {
-                options.Templates
-                    .Add(
-                        new EmailTemplateDefinition(StandardEmailTemplates.DefaultLayout, isLayout: true, layout: null)
-                            .SetVirtualFilePath("/Volo/Abp/Emailing/Templates/DefaultLayout.html")
-                    ).Add(
-                        new EmailTemplateDefinition(StandardEmailTemplates.SimpleMessage)
-                            .SetVirtualFilePath("/Volo/Abp/Emailing/Templates/SimpleMessageTemplate.html")
-                    );
+                options.AddJob<BackgroundEmailSendingJob>();
             });
         }
     }

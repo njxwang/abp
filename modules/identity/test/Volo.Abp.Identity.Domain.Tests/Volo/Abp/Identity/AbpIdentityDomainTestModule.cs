@@ -1,18 +1,25 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Authorization.Permissions;
+using Volo.Abp.Domain.Entities.Events.Distributed;
 using Volo.Abp.Identity.EntityFrameworkCore;
 using Volo.Abp.Modularity;
+using Volo.Abp.PermissionManagement.Identity;
+using Volo.Abp.Threading;
 
 namespace Volo.Abp.Identity
 {
-    [DependsOn(typeof(AbpIdentityEntityFrameworkCoreTestModule))]
+    [DependsOn(
+        typeof(AbpIdentityEntityFrameworkCoreTestModule),
+        typeof(AbpIdentityTestBaseModule),
+        typeof(AbpPermissionManagementDomainIdentityModule)
+        )]
     public class AbpIdentityDomainTestModule : AbpModule
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            context.Services.Configure<PermissionOptions>(options =>
+            Configure<AbpDistributedEntityEventOptions>(options =>
             {
-                options.DefinitionProviders.Add<IdentityTestPermissionDefinitionProvider>();
+                options.AutoEventSelectors.Add<IdentityUser>();
             });
         }
 
@@ -25,9 +32,9 @@ namespace Volo.Abp.Identity
         {
             using (var scope = context.ServiceProvider.CreateScope())
             {
-                scope.ServiceProvider
+                AsyncHelper.RunSync(() => scope.ServiceProvider
                     .GetRequiredService<TestPermissionDataBuilder>()
-                    .Build();
+                    .Build());
             }
         }
     }

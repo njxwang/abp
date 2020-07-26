@@ -12,13 +12,12 @@ namespace Volo.Abp.Identity.MongoDB
     {
         public override void ConfigureServices(ServiceConfigurationContext context)
         {
-            AbpIdentityBsonClassMap.Configure();
-
             context.Services.AddMongoDbContext<AbpIdentityMongoDbContext>(options =>
             {
                 options.AddRepository<IdentityUser, MongoIdentityUserRepository>();
                 options.AddRepository<IdentityRole, MongoIdentityRoleRepository>();
                 options.AddRepository<IdentityClaimType, MongoIdentityRoleRepository>();
+                options.AddRepository<OrganizationUnit, MongoIdentityRoleRepository>();
             });
         }
     }

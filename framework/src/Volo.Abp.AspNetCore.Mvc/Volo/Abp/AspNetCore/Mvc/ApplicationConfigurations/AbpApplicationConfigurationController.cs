@@ -3,20 +3,23 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Volo.Abp.AspNetCore.Mvc.ApplicationConfigurations
 {
+    [Area("abp")]
+    [RemoteService(Name = "abp")]
     [Route("api/abp/application-configuration")]
-    public class AbpApplicationConfigurationController : AbpController
+    public class AbpApplicationConfigurationController : AbpController, IAbpApplicationConfigurationAppService
     {
-        private readonly IApplicationConfigurationBuilder _configurationBuilder;
+        private readonly IAbpApplicationConfigurationAppService _applicationConfigurationAppService;
 
-        public AbpApplicationConfigurationController(IApplicationConfigurationBuilder configurationBuilder)
+        public AbpApplicationConfigurationController(
+            IAbpApplicationConfigurationAppService applicationConfigurationAppService)
         {
-            _configurationBuilder = configurationBuilder;
+            _applicationConfigurationAppService = applicationConfigurationAppService;
         }
 
         [HttpGet]
-        public Task<ApplicationConfigurationDto> Get()
+        public async Task<ApplicationConfigurationDto> GetAsync()
         {
-            return _configurationBuilder.GetAsync();
+            return await _applicationConfigurationAppService.GetAsync();
         }
     }
 }

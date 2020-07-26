@@ -4,13 +4,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.EntityFrameworkCore;
+using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Modularity;
 
 namespace Volo.Abp.SettingManagement.EntityFrameworkCore
 {
     [DependsOn(
         typeof(AbpSettingManagementTestBaseModule),
-        typeof(AbpSettingManagementEntityFrameworkCoreModule)
+        typeof(AbpSettingManagementEntityFrameworkCoreModule),
+        typeof(AbpEntityFrameworkCoreSqliteModule)
         )]
     public class AbpSettingManagementEntityFrameworkCoreTestModule : AbpModule
     {
@@ -18,7 +20,7 @@ namespace Volo.Abp.SettingManagement.EntityFrameworkCore
         {
             var sqliteConnection = CreateDatabaseAndGetConnection();
 
-            context.Services.Configure<AbpDbContextOptions>(options =>
+            Configure<AbpDbContextOptions>(options =>
             {
                 options.Configure(abpDbContextConfigurationContext =>
                 {
@@ -32,8 +34,8 @@ namespace Volo.Abp.SettingManagement.EntityFrameworkCore
             var connection = new SqliteConnection("Data Source=:memory:");
             connection.Open();
 
-            new AbpSettingManagementDbContext(
-                new DbContextOptionsBuilder<AbpSettingManagementDbContext>().UseSqlite(connection).Options
+            new SettingManagementDbContext(
+                new DbContextOptionsBuilder<SettingManagementDbContext>().UseSqlite(connection).Options
             ).GetService<IRelationalDatabaseCreator>().CreateTables();
 
             return connection;

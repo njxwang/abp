@@ -32,6 +32,18 @@ namespace System.Collections.Generic
             source.Insert(source.Count, item);
         }
 
+        public static void InsertAfter<T>(this IList<T> source, T existingItem, T item)
+        {
+            var index = source.IndexOf(existingItem);
+            if (index < 0)
+            {
+                source.AddFirst(item);
+                return;
+            }
+
+            source.Insert(index + 1, item);
+        }
+
         public static void InsertAfter<T>(this IList<T> source, Predicate<T> selector, T item)
         {
             var index = source.FindIndex(selector);
@@ -44,6 +56,17 @@ namespace System.Collections.Generic
             source.Insert(index + 1, item);
         }
 
+        public static void InsertBefore<T>(this IList<T> source, T existingItem, T item)
+        {
+            var index = source.IndexOf(existingItem);
+            if (index < 0)
+            {
+                source.AddLast(item);
+                return;
+            }
+
+            source.Insert(index, item);
+        }
 
         public static void InsertBefore<T>(this IList<T> source, Predicate<T> selector, T item)
         {
@@ -157,7 +180,10 @@ namespace System.Collections.Generic
         /// <typeparam name="T">The type of the members of values.</typeparam>
         /// <param name="source">A list of objects to sort</param>
         /// <param name="getDependencies">Function to resolve the dependencies</param>
-        /// <returns></returns>
+        /// <returns>
+        /// Returns a new list ordered by dependencies.
+        /// If A depends on B, then B will come before than A in the resulting list. 
+        /// </returns>
         public static List<T> SortByDependencies<T>(this IEnumerable<T> source, Func<T, IEnumerable<T>> getDependencies)
         {
             /* See: http://www.codeproject.com/Articles/869059/Topological-sorting-in-Csharp

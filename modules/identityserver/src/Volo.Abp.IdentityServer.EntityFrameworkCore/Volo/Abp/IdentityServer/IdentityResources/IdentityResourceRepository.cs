@@ -13,7 +13,7 @@ namespace Volo.Abp.IdentityServer.IdentityResources
 {
     public class IdentityResourceRepository : EfCoreRepository<IIdentityServerDbContext, IdentityResource, Guid>, IIdentityResourceRepository
     {
-        public IdentityResourceRepository(IDbContextProvider<IIdentityServerDbContext> dbContextProvider) 
+        public IdentityResourceRepository(IDbContextProvider<IIdentityServerDbContext> dbContextProvider)
             : base(dbContextProvider)
         {
 
@@ -31,32 +31,38 @@ namespace Volo.Abp.IdentityServer.IdentityResources
             return await query.ToListAsync(GetCancellationToken(cancellationToken));
         }
 
-        public virtual async Task<List<IdentityResource>> GetListAsync(
-            bool includeDetails = false,
-            CancellationToken cancellationToken = default)
-        {
-            return await DbSet
-                .IncludeDetails(includeDetails)
-                .ToListAsync(GetCancellationToken(cancellationToken));
-        }
-
         public override IQueryable<IdentityResource> WithDetails()
         {
             return GetQueryable().IncludeDetails();
         }
 
-        public virtual async Task<List<IdentityResource>> GetListAsync(string sorting, int skipCount, int maxResultCount, 
-            bool includeDetails = false, CancellationToken cancellationToken = default)
+        public virtual async Task<List<IdentityResource>> GetListAsync(string sorting, int skipCount, int maxResultCount,
+            string filter, bool includeDetails = false, CancellationToken cancellationToken = default)
         {
             return await DbSet
-                .IncludeDetails(includeDetails).OrderBy(sorting ?? "name desc")
+                .IncludeDetails(includeDetails)
+                .WhereIf(!filter.IsNullOrWhiteSpace(), x => x.Name.Contains(filter) ||
+                         x.Description.Contains(filter) ||
+                         x.DisplayName.Contains(filter))
+                .OrderBy(sorting ?? "name desc")
                 .PageBy(skipCount, maxResultCount)
                 .ToListAsync(GetCancellationToken(cancellationToken));
         }
 
-        public virtual async Task<long> GetTotalCount()
+        public virtual async Task<IdentityResource> FindByNameAsync(
+            string name,
+            bool includeDetails = true,
+            CancellationToken cancellationToken = default)
         {
-            return await DbSet.CountAsync();
+            return await DbSet
+                .IncludeDetails(includeDetails)
+                .Where(x => x.Name == name)
+                .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
+        }
+
+        public virtual async Task<bool> CheckNameExistAsync(string name, Guid? expectedId = null, CancellationToken cancellationToken = default)
+        {
+            return await DbSet.AnyAsync(ir => ir.Id != expectedId && ir.Name == name, cancellationToken: cancellationToken);
         }
     }
 }

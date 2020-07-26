@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.Domain.Repositories.EntityFrameworkCore;
@@ -16,29 +17,31 @@ namespace Volo.Blogging.Tagging
         {
         }
 
-        public async Task<List<Tag>> GetListAsync()
+        public async Task<List<Tag>> GetListAsync(Guid blogId)
         {
-            return await DbSet.ToListAsync();
+            return await DbSet.Where(t=>t.BlogId == blogId).ToListAsync();
         }
 
-        public async Task<Tag> GetByNameAsync(string name)
+        public async Task<Tag> GetByNameAsync(Guid blogId, string name)
         {
-            return await DbSet.FirstAsync(t=>t.Name == name);
+            return await DbSet.FirstAsync(t=> t.BlogId == blogId && t.Name == name);
         }
 
-        public async Task<Tag> FindByNameAsync(string name)
+        public async Task<Tag> FindByNameAsync(Guid blogId, string name)
         {
-            return await DbSet.FirstOrDefaultAsync(t=>t.Name == name);
+            return await DbSet.FirstOrDefaultAsync(t => t.BlogId == blogId && t.Name == name);
         }
 
         public async Task<List<Tag>> GetListAsync(IEnumerable<Guid> ids)
         {
-            return await DbSet.Where(c => ids.Contains(c.Id)).ToListAsync();
+            return await DbSet.Where(t => ids.Contains(t.Id)).ToListAsync();
         }
 
-        public void DecreaseUsageCountOfTags(List<Guid> ids)
+        public async Task DecreaseUsageCountOfTagsAsync(List<Guid> ids, CancellationToken cancellationToken = default)
         {
-            var tags = DbSet.Where(t => ids.Any(id => id == t.Id));
+            var tags = await DbSet
+                .Where(t => ids.Any(id => id == t.Id))
+                .ToListAsync(GetCancellationToken(cancellationToken));
 
             foreach (var tag in tags)
             {

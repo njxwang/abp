@@ -12,7 +12,7 @@ Volo.Abp.Localization是本地化系统的核心包. 使用程序包管理器控
 Install-Package Volo.Abp.Localization
 ```
 
-然后,您可以将 **AbpLocalizationModule** 依赖项添加到您的模块:
+然后, 你可以将 **AbpLocalizationModule** 依赖项添加到模块:
 
 ```c#
 using Volo.Abp.Modularity;
@@ -46,12 +46,13 @@ public class MyModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.Configure<VirtualFileSystemOptions>(options =>
+        Configure<AbpVirtualFileSystemOptions>(options =>
         {
-            options.FileSets.AddEmbedded<MyModule>();
+            // "YourRootNameSpace" 是项目的根命名空间名字. 如果你的项目的根命名空间名字为空,则无需传递此参数.
+            options.FileSets.AddEmbedded<MyModule>("YourRootNameSpace");
         });
 
-        context.Services.Configure<AbpLocalizationOptions>(options =>
+        Configure<AbpLocalizationOptions>(options =>
         {
             options.Resources
                 .Add<TestResource>("en")
@@ -84,6 +85,21 @@ JSON文件位于 "/Localization/Resources/Test" 项目文件夹下, 如下图所
 
 * 每个本地化文件都需要定义 `culture` (文化) 代码  (例如 "en" 或 "en-US").
 * `texts` 部分只包含本地化字符串的键值集合 (键也可能有空格).
+
+### 默认资源
+
+可以将 `AbpLocalizationOptions.DefaultResourceType` 设置为资源类型,在未指定本地化资源时使用:
+
+````csharp
+Configure<AbpLocalizationOptions>(options =>
+{
+    options.DefaultResourceType = typeof(TestResource);
+});
+````
+
+> [启动模板]](Startup-Templates/Application.md) 设置 `DefaultResourceType` 为应用程序的本地化资源.
+
+请参阅下面的*客户端*部分获取用例
 
 ##### 简短的本地化资源名称
 
@@ -126,7 +142,7 @@ services.Configure<AbpLocalizationOptions>(options =>
 
 ##### 扩展现有资源
 
-继承资源可以创建新的资源, 无需修改现有的资源. 但是在某些情况下,  您可能不想创建新资源,而是直接扩展现有资源. 例如:
+继承资源可以创建新的资源, 无需修改现有的资源. 但是在某些情况下,  你可能不想创建新资源,而是直接扩展现有资源. 例如:
 
 ````C#
 services.Configure<AbpLocalizationOptions>(options =>
@@ -164,6 +180,10 @@ public class MyService
 }
 ````
 
+##### 格式参数
+
+格式参数可以在本地化Key参数后传递,如果你的消息是 `Hello {0}, welcome!`,可以将 `{0}` 传递给localizer,例如: `_localizer["HelloMessage", "John"]`.
+
 ###### 在Razor视图/Page中简单的用法
 
 ````c#
@@ -178,7 +198,9 @@ public class MyService
 
 ABP提供了JavaScript服务, 可以在客户端使用相同的本地化文本.
 
-获取本地化资源:
+#### getResource
+
+`abp.localization.getResource` 函数用于获取本地化资源:
 
 ````js
 var testResource = abp.localization.getResource('Test');
@@ -189,3 +211,34 @@ var testResource = abp.localization.getResource('Test');
 ````js
 var str = testResource('HelloWorld');
 ````
+
+#### 本地化
+
+`abp.localization.localize` 函数用于获取本地化文本,你可以传递本地化Key和资源名称:
+
+````js
+var str = abp.localization.localize('HelloWorld', 'Test');
+````
+
+`HelloWorld` 是本地化文本的Key, `Test` 是本地化资源的名称.
+
+如果未指定本地化资源名称,它使用 `AbpLocalizationOptions` 中定义的默认本地化资源(参见上面的*默认资源*部分). 例:
+
+````js
+var str = abp.localization.localize('HelloWorld'); //uses the default resource
+````
+
+##### 格式参数
+
+如果本地化字符串包含参数, 例如 `Hello {0}, welcome!`. 你可以将参数传递给本地化方法. 例:
+
+````js
+var str1 = abp.localization.getResource('Test')('HelloWelcomeMessage', 'John');
+var str2 = abp.localization.localize('HelloWorld', 'Test', 'John');
+````
+
+上面的两个示例都会输出 `Hello John, welcome!`.
+
+## 另请参阅
+
+* [Angular UI中的本地化](UI/Angular/Localization.md)
